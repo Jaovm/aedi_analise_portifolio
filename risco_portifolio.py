@@ -63,7 +63,7 @@ col1, col2 = st.sidebar.columns(2)
 
 #colocar 6 tickers das principais ações da B3
 s_tickers = ['PETR4.SA', 'VALE3.SA', 'ITUB4.SA', 'BBDC4.SA', 'ABEV3.SA', 'B3SA3.SA']
-s_weights = [1/6] * 6
+s_weights = [1.0] * 6
 
 tickers = []
 weights = []
@@ -257,8 +257,8 @@ fig.update_layout(
     legend=dict(title='Distribuição', itemsizing='constant'),
 )
 
-fig.add_vline(x=VaR, line_width=3, line_dash="dash", line_color="blue", annotation_text='VaR t-Student', annotation_position="top left")
-fig.add_vline(x=VaR_normal, line_width=3, line_dash="dash", line_color="cyan", annotation_text='VaR Normal', annotation_position="top right")
+fig.add_vline(x=VaR, line_width=3, line_dash="dash", line_color="green", annotation_text='VaR t-Student', annotation_position="top left")
+fig.add_vline(x=VaR_normal, line_width=3, line_dash="dash", line_color="red", annotation_text='VaR Normal', annotation_position="top right")
 
 col_graficos.plotly_chart(fig)
 
