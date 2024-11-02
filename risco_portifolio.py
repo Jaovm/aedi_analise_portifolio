@@ -13,185 +13,128 @@ import pandas as pd
 import numpy as np
 from scipy.stats import t
 import matplotlib.pyplot as plt
-
-# # Definir o ticker da ação (por exemplo, 'PETR4.SA' para Petrobras)
-# ticker_a = 'BBSE3.SA'
-# ticker_b = 'BBAS3.SA'
-
-# # Definir o período de análise
-# inicio = '2010-01-01'
-# fim = '2024-10-31'
-
-# # Baixar os dados históricos
-# dados_a = yf.download(ticker_a, start=inicio, end=fim)
-# dados_b = yf.download(ticker_b, start=inicio, end=fim)
-
-# # Calcular os retornos diários para dados_a
-# dados_a['Retorno'] = dados_a['Adj Close'].pct_change()
-# dados_a = dados_a.dropna()
-# retorno_medio_diario_a = dados_a['Retorno'].mean()
-# volatilidade_diaria_a = dados_a['Retorno'].std()
-
-# # Calcular os retornos diários para dados_b
-# dados_b['Retorno'] = dados_b['Adj Close'].pct_change()
-# dados_b = dados_b.dropna()
-# retorno_medio_diario_b = dados_b['Retorno'].mean()
-# volatilidade_diaria_b = dados_b['Retorno'].std()
+import plotly.express as px
 
 
-# print(f"Retorno médio diário da ação {ticker_a} entre {inicio} e {fim}: {retorno_medio_diario_a:.5%}")
-# print(f"Volatilidade diária da ação {ticker_a}: {volatilidade_diaria_a:.5%}")
-
-# print(f"Retorno médio diário da ação {ticker_b} entre {inicio} e {fim}: {retorno_medio_diario_b:.5%}")
-# print(f"Volatilidade diária da ação {ticker_b}: {volatilidade_diaria_b:.5%}")
-
-# # Parâmetros da distribuição t de Student para os retornos dos ativos
-# df_A = 5  # Graus de liberdade do ativo A
-# loc_A = retorno_medio_diario_a  # Média do retorno diário do ativo A
-# scale_A = volatilidade_diaria_b  # Desvio padrão do retorno diário do ativo A
-# df_B = 5  # Graus de liberdade do ativo B
-# loc_B = retorno_medio_diario_b  # Média do retorno diário do ativo B
-# scale_B = volatilidade_diaria_b  # Desvio padrão do retorno diário do ativo B
-
-# # Pesos da carteira
-# w_A = 0  # Peso do ativo A na carteira
-# w_B = 1  # Peso do ativo B na carteira
-
-# # Número de simulações de Monte Carlo
-# n_simulations = 10000
-
-# # Horizonte de tempo (em dias)
-# horizon = 30
-
-# # Simulação dos retornos diários dos ativos
-# returns_A = t.rvs(df=df_A, loc=loc_A, scale=scale_A, size=(n_simulations, horizon))
-# returns_B = t.rvs(df=df_B, loc=loc_B, scale=scale_B, size=(n_simulations, horizon))
-
-# # Cálculo dos retornos diários da carteira
-# portfolio_returns = w_A * returns_A + w_B * returns_B
-
-# # Cálculo dos retornos acumulados da carteira para o horizonte de tempo
-# cumulative_returns = np.prod(1 + portfolio_returns, axis=1) - 1
-
-# # Cálculo do VaR (95% de confiança)
-# VaR = np.percentile(cumulative_returns, 5)
-
-# # Impressão do resultado
-# print(f'VaR (95% de confiança) para {horizon} dias: {VaR:.4f}')
-
-# # Histograma dos retornos acumulados da carteira
-# plt.hist(cumulative_returns, bins=50)
-# plt.xlabel('Retorno Acumulado da Carteira')
-# plt.ylabel('Frequência')
-# plt.title(f'Distribuição dos Retornos da Carteira ({horizon} dias)')
-# plt.show()
-
-# criar um layout com 2 panels um à esquerda e um à direita. o da esquerda terá parâmetros 
-# e campos para inserção de dados e o da direita terá gráficos e resultados
+# Configuração da página
 st.set_page_config(layout="wide")
-st.title('Simulações de Monte Carlo para Análise de Risco e Retorno de Portifólio de Ações')
+st.title('Análise de Risco e Retorno de Portifólio de Ações')
 
-
+# Sidebar
 st.sidebar.header('Parâmetros')
-
-# # botao para executar a simulação
-# simular = st.sidebar.button('Simular')
 
 # Horizonte de tempo (em dias)
 horizon = st.sidebar.text_input('Horizonte de Tempo (dias)', 30)
 
-
-# Definir os graus de liberdade da distribuição t de Student
+# Graus de liberdade da distribuição t de Student
 degrees_freedom = st.sidebar.text_input('Graus de Liberdade', 5)
 
-# Definir o nível de confiança para o VaR
+# Nível de confiança para o VaR
 confidence_level = st.sidebar.text_input('Nível de Confiança', 95)
 
-# Definir o número de simulações de Monte Carlo
+# Número de simulações de Monte Carlo
 n_simulations = st.sidebar.text_input('Número de Simulações', 10000)
 
-# Definir o ticker e peso dos ativos
+
+# Título da seção de dados
+st.sidebar.markdown('## Período para o Histórico')
+
+# Período de análise dos dados históricos
+col3, col4 = st.sidebar.columns(2)
+
+with col3:
+    inicio = st.text_input('Data de Início', '2010-01-01')
+
+with col4:
+    fim = st.text_input('Data de Fim', '2024-10-31')
+
+# Título da seção de dados
+st.sidebar.markdown('## Dados dos Ativos')
+
+# Ticker e peso dos ativos
 col1, col2 = st.sidebar.columns(2)
 
-with col1:
-    ticker_a = st.text_input('Ticker do Ativo A', 'PETR4.SA')
-    ticker_b = st.text_input('Ticker do Ativo B', 'VALE3.SA')
+#colocar 6 tickers das principais ações da B3
+s_tickers = ['PETR4.SA', 'VALE3.SA', 'ITUB4.SA', 'BBDC4.SA', 'ABEV3.SA', 'B3SA3.SA']
+s_weights = [1/6] * 6
 
-with col2:
-    weight_a = st.text_input('Peso do Ativo A', 0.5)
-    weight_b = st.text_input('Peso do Ativo B', 0.5)
+tickers = []
+weights = []
+for i in range(6):
+    with col1:
+        ticker = st.text_input(f'Ticker do Ativo {i+1}', s_tickers[i-1])
+        tickers.append(ticker)
+    with col2:
+        weight = st.text_input(f'Peso do Ativo {i+1}', f'{s_weights[i-1]:.4}')
+        weights.append(weight)
 
-# Definir o período de análise
-inicio = st.sidebar.text_input('Data de Início', '2010-01-01')
-fim = st.sidebar.text_input('Data de Fim', '2024-10-31')
 
 # definir layout em 2 colunas dados, graficos
 container = st.container()
 col_dados, col_graficos = container.columns(2)
 
-# Criar um botão que atualiza a simulação
-def executar_simulacao():
-    
-    # Baixar os dados históricos
-    dados_a = yf.download(ticker_a, start=inicio, end=fim)
-    dados_b = yf.download(ticker_b, start=inicio, end=fim)
+   
+# Filtrar tickers e pesos válidos
+valid_tickers = [ticker for ticker in tickers if ticker]
+valid_weights = [float(weights[i]) for i in range(len(tickers)) if tickers[i]]
 
-    # Calcular os retornos diários para dados_a
-    dados_a['Retorno'] = dados_a['Adj Close'].pct_change()
-    dados_a = dados_a.dropna()
-    retorno_medio_diario_a = dados_a['Retorno'].mean()
-    volatilidade_diaria_a = dados_a['Retorno'].std()
+# Normalizar os pesos para somarem 1
+total_weight = sum(valid_weights)
+normalized_weights = [weight / total_weight for weight in valid_weights]
 
-    # Calcular os retornos diários para dados_b
-    dados_b['Retorno'] = dados_b['Adj Close'].pct_change()
-    dados_b = dados_b.dropna()
-    retorno_medio_diario_b = dados_b['Retorno'].mean()
-    volatilidade_diaria_b = dados_b['Retorno'].std()
+# Baixar os dados históricos
+dados = {}
+for ticker in valid_tickers:
+    dados[ticker] = yf.download(ticker, start=inicio, end=fim)
 
-    col_dados.write(f"Retorno médio diário da ação {ticker_a} entre {inicio} e {fim}: {retorno_medio_diario_a:.5%}")
+# Calcular os retornos diários para cada ativo
+retornos = {}
+for ticker in valid_tickers:
+    dados[ticker]['Retorno'] = dados[ticker]['Adj Close'].pct_change()
+    dados[ticker] = dados[ticker].dropna()
+    retornos[ticker] = {
+        'Retorno Médio Diário': dados[ticker]['Retorno'].mean(),
+        'Volatilidade Média Diária': dados[ticker]['Retorno'].std()
+    }
 
-    col_dados.write(f"Volatilidade diária da ação {ticker_a}: {volatilidade_diaria_a:.5%}")
+# Criar um DataFrame com os resultados
+resultados = pd.DataFrame(retornos).T.reset_index().rename(columns={'index': 'Ticker'})
 
-    col_dados.write(f"Retorno médio diário da ação {ticker_b} entre {inicio} e {fim}: {retorno_medio_diario_b:.5%}")
+# Exibir o DataFrame na coluna de dados sem o índice
+col_dados.write(resultados)
 
-    col_dados.write(f"Volatilidade diária da ação {ticker_b}: {volatilidade_diaria_b:.5%}")
+# Parâmetros da distribuição t de Student para os retornos dos ativos
+n_s = int(n_simulations)
+n_h = int(horizon)
+simulated_returns = []
 
-    # Parâmetros da distribuição t de Student para os retornos dos ativos
-    df_A = int(degrees_freedom)  # Graus de liberdade do ativo A
-    loc_A = retorno_medio_diario_a  # Média do retorno diário do ativo A
-    scale_A = volatilidade_diaria_a  # Desvio padrão do retorno diário do ativo A
-    df_B = 5  # Graus de liberdade do ativo B
-    loc_B = retorno_medio_diario_b  # Média do retorno diário do ativo B
-    scale_B = volatilidade_diaria_b  # Desvio padrão do retorno diário do ativo B
+for i, ticker in enumerate(valid_tickers):
+    df = int(degrees_freedom)
+    loc = retornos[ticker]['Retorno Médio Diário']
+    scale = retornos[ticker]['Volatilidade Média Diária']
+    simulated_returns.append(normalized_weights[i] * t.rvs(df=df, loc=loc, scale=scale, size=(n_s, n_h)))
 
-    # Simulação dos retornos diários dos ativos
-    n_s = int(n_simulations)
-    n_h = int(horizon)
+# Cálculo dos retornos diários da carteira
+portfolio_returns = np.sum(simulated_returns, axis=0)
 
-    returns_A = t.rvs(df=df_A, loc=loc_A, scale=scale_A, size=(n_s, n_h))
-    returns_B = t.rvs(df=df_B, loc=loc_B, scale=scale_B, size=(n_s, n_h))
+# Cálculo dos retornos acumulados da carteira para o horizonte de tempo
+cumulative_returns = np.prod(1 + portfolio_returns, axis=1) - 1
 
-    # Cálculo dos retornos diários da carteira
-    w_a = float(weight_a)
-    w_b = float(weight_b)
-    portfolio_returns = w_a * returns_A + w_b * returns_B
+# Cálculo do VaR (95% de confiança)
+VaR = np.percentile(cumulative_returns, 100 - float(confidence_level))
 
-    # Cálculo dos retornos acumulados da carteira para o horizonte de tempo
-    cumulative_returns = np.prod(1 + portfolio_returns, axis=1) - 1
+# Impressão do resultado
+col_dados.write(f'VaR ({confidence_level}% de confiança) para {horizon} dias: {VaR:.4f}')
 
-    # Cálculo do VaR (95% de confiança)
-    VaR = np.percentile(cumulative_returns, 5)
+# Histograma dos retornos acumulados da carteira
 
-    # Impressão do resultado
-    col_dados.write(f'VaR (95% de confiança) para {horizon} dias: {VaR:.4f}')
+fig = px.histogram(
+    cumulative_returns, 
+    nbins=200, 
+    labels={'value': 'Retorno Acumulado da Carteira'}, 
+    title=f'Distribuição dos Retornos da Carteira ({horizon} dias)'
+)
 
-    # Histograma dos retornos acumulados da carteira
-    fig, ax = plt.subplots()
-    ax.hist(cumulative_returns, bins=50)
-    ax.set_xlabel('Retorno Acumulado da Carteira')
-    ax.set_ylabel('Frequência')
-    ax.set_title(f'Distribuição dos Retornos da Carteira ({horizon} dias)')
-    col_graficos.pyplot(fig)
+fig.update_layout(xaxis_title='Retorno Acumulado da Carteira', yaxis_title='Frequência')    
+col_graficos.plotly_chart(fig)
 
-
-executar_simulacao()
