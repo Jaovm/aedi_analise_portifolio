@@ -112,12 +112,12 @@ n_simulations = st.sidebar.text_input('Número de Simulações', 10000)
 # Definir o ticker da ação A
 ticker_a = st.sidebar.text_input('Ticker do Ativo A', 'PETR4.SA')
 # Definir o peso do ativo A na carteira
-weight_a = st.sidebar.text_input('Peso do Ativo A', 0)
+weight_a = st.sidebar.text_input('Peso do Ativo A', 0.5)
 
 # Definir o ticker da ação B
 ticker_b = st.sidebar.text_input('Ticker do Ativo B', 'VALE3.SA')
 # Definir o peso do ativo B na carteira
-weight_b = st.sidebar.text_input('Peso do Ativo B', 1)
+weight_b = st.sidebar.text_input('Peso do Ativo B', 0.5)
 
 # Definir o período de análise
 inicio = st.sidebar.text_input('Data de Início', '2010-01-01')
