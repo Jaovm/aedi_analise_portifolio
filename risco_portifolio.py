@@ -113,6 +113,12 @@ A distribuição t de Student é uma alternativa melhor nesse caso, pois acomoda
 melhor a chance de eventos extremos. Isso leva a estimativas de risco mais precisas, especialmente para métricas \
 como o VaR, que são influenciadas por esses eventos.
 
+O VaR é uma medida estatística que quantifica a perda potencial máxima esperada de um portfólio \
+em um determinado horizonte de tempo, para um dado nível de confiança. Assim, considerando-se um VaR de -0,50 \
+com 95% de confiança para 365 dias, por exemplo, significa que há 95% de confiança de que a perda não excederá \
+50% do valor do portfólio ao longo dos próximos 365 dias. Da mesma forma, há uma probabilidade de 5% de que a \
+perda seja superior a 50% nesse período.
+
 
 ## Metodologia
 
@@ -145,6 +151,15 @@ acumulados da carteira.
 9. Análise dos resultados: os resultados foram apresentados em termos de VaR e distribuição dos retornos acumulados \
 da carteira.
 
+10. A simulação também é feita utilizando-se uma normal permitindo a comparação dos resultados de ambas as distribuições.
+
+## Resultados
+
+A principal diferença observada ao utilizar a distribuição t de Student é o aumento da probabilidade de eventos \
+extremos devido às suas caudas mais pesadas. Isso resulta em um VaR mais conservador (ou seja, uma perda potencial \
+maior) em comparação com a distribuição normal. No contexto da gestão de riscos, isso significa que o modelo está \
+levando em consideração a maior chance de ocorrerem perdas significativas, proporcionando uma estimativa de \
+risco mais realista.
 """
 col_dados.markdown(md)
 
@@ -164,12 +179,13 @@ for ticker in valid_tickers:
 
 # Calcular os retornos diários para cada ativo
 retornos = {}
-for ticker in valid_tickers:
+for ticker, weight in zip(valid_tickers, normalized_weights):
     dados[ticker]['Retorno'] = dados[ticker]['Adj Close'].pct_change()
     dados[ticker] = dados[ticker].dropna()
     retornos[ticker] = {
         'Retorno Médio Diário': dados[ticker]['Retorno'].mean(),
-        'Volatilidade Média Diária': dados[ticker]['Retorno'].std()
+        'Volatilidade Média Diária': dados[ticker]['Retorno'].std(),
+        'Peso Normalizado': weight
     }
 
 # Criar um DataFrame com os resultados
@@ -206,37 +222,37 @@ cumulative_returns = np.prod(1 + portfolio_returns, axis=1) - 1
 VaR = np.percentile(cumulative_returns, 100 - float(confidence_level))
 
 # Impressão do resultado
-col_graficos.write(f'VaR ({confidence_level}% de confiança) para {horizon} dias: {VaR:.4%}')
-
-# Histograma dos retornos acumulados da carteira
-
-fig = px.histogram(
-    cumulative_returns, 
-    nbins=200, 
-    labels={'value': 'Retorno Acumulado da Carteira'}, 
-    title=f'Distribuição dos Retornos da Carteira ({horizon} dias) - Simulação com t-Student',
-)
-
-fig.update_layout(xaxis_title='Retorno Acumulado da Carteira', yaxis_title='Frequência', showlegend=False)    
-col_graficos.plotly_chart(fig)
+col_graficos.markdown(f'VaR - t de Student ({confidence_level}% de confiança) para {horizon} dias: __{VaR:.4%}__')
 
 
 # calculo com a simulacao da normal
 portfolio_returns_normal = np.sum(simulated_returns_normal, axis=0)
 cumulative_returns_normal = np.prod(1 + portfolio_returns_normal, axis=1) - 1
 VaR_normal = np.percentile(cumulative_returns_normal, 100 - float(confidence_level))
-
 # Impressão do resultado
-col_graficos.write(f'VaR ({confidence_level}% de confiança) para {horizon} dias: {VaR_normal:.4%}')
+col_graficos.markdown(f'VaR - Normal ({confidence_level}% de confiança) para {horizon} dias: __{VaR_normal:.4%}__')
+# Histograma dos retornos acumulados da carteira com t-Student e Normal
 
-fig2 = px.histogram(
-    cumulative_returns_normal, 
+fig = px.histogram(
+    pd.DataFrame({'t de Student':cumulative_returns, 'Normal':cumulative_returns_normal}), 
     nbins=200, 
+    opacity=0.5, 
     labels={'value': 'Retorno Acumulado da Carteira'}, 
-    title=f'Distribuição dos Retornos da Carteira ({horizon} dias) - Simulação com Normal',
+    title=f'Distribuição dos Retornos da Carteira ({horizon} dias)',
+    # histnorm='probability',
+    # legend='t de Student',
+    # hover_name='t de Student'
 )
 
-fig2.update_layout(xaxis_title='Retorno Acumulado da Carteira', yaxis_title='Frequência', showlegend=False)
+fig.update_layout(
+    xaxis_title='Retorno Acumulado da Carteira', 
+    yaxis_title='Frequência', 
+    showlegend=True,
+    legend=dict(title='Distribuição', itemsizing='constant'),
+)
 
-col_graficos.plotly_chart(fig2)
+fig.add_vline(x=VaR, line_width=3, line_dash="dash", line_color="blue", annotation_text='VaR t-Student', annotation_position="top left")
+fig.add_vline(x=VaR_normal, line_width=3, line_dash="dash", line_color="cyan", annotation_text='VaR Normal', annotation_position="top right")
+
+col_graficos.plotly_chart(fig)
 
