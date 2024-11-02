@@ -91,6 +91,7 @@ import matplotlib.pyplot as plt
 st.set_page_config(layout="wide")
 st.title('Simulações de Monte Carlo para Análise de Risco e Retorno de Portifólio de Ações')
 
+
 st.sidebar.header('Parâmetros')
 
 # # botao para executar a simulação
@@ -109,15 +110,16 @@ confidence_level = st.sidebar.text_input('Nível de Confiança', 95)
 # Definir o número de simulações de Monte Carlo
 n_simulations = st.sidebar.text_input('Número de Simulações', 10000)
 
-# Definir o ticker da ação A
-ticker_a = st.sidebar.text_input('Ticker do Ativo A', 'PETR4.SA')
-# Definir o peso do ativo A na carteira
-weight_a = st.sidebar.text_input('Peso do Ativo A', 0.5)
+# Definir o ticker e peso dos ativos
+col1, col2 = st.sidebar.columns(2)
 
-# Definir o ticker da ação B
-ticker_b = st.sidebar.text_input('Ticker do Ativo B', 'VALE3.SA')
-# Definir o peso do ativo B na carteira
-weight_b = st.sidebar.text_input('Peso do Ativo B', 0.5)
+with col1:
+    ticker_a = st.text_input('Ticker do Ativo A', 'PETR4.SA')
+    ticker_b = st.text_input('Ticker do Ativo B', 'VALE3.SA')
+
+with col2:
+    weight_a = st.text_input('Peso do Ativo A', 0.5)
+    weight_b = st.text_input('Peso do Ativo B', 0.5)
 
 # Definir o período de análise
 inicio = st.sidebar.text_input('Data de Início', '2010-01-01')
