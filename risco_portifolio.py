@@ -85,9 +85,10 @@ estimar o Value at Risk (VaR) de um portifólio de ações.
 
 ## Fundamentos Estatísticos da Simulação
 
-A distribuição t de Student é uma distribuição de probabilidade que é utilizada para estimar a média de uma \
-população quando a amostra é pequena e a população tem uma distribuição normal. A distribuição t de Student é \
-comumente utilizada para calcular intervalos de confiança e testes de hipóteses.
+A distribuição t de Student é uma distribuição de probabilidade contínua que surge quando se estima a média \
+de uma população normalmente distribuída, mas a variância populacional é desconhecida e substituída pela \
+variância amostral. Ela é particularmente útil em amostras de pequeno tamanho, onde a incerteza sobre a \
+variância populacional é maior.
 
 Matematicamente, a distribuição t de Student com 𝜈 graus de liberdade é definida pela função de densidade de \
 probabilidade:"""
@@ -102,6 +103,16 @@ col_dados.latex(latex_code)
 
 md = """\
 onde Γ é a função gama e 𝜈 representa os graus de liberdade.
+
+Em análises financeiras, o modelo de distribuição normal é frequentemente usado para representar os retornos \
+de ativos. Contudo, dados reais mostram que esses retornos geralmente têm "caudas pesadas", ou seja, eventos \
+extremos (grandes perdas ou ganhos) acontecem com mais frequência do que o previsto pela curva normal.
+
+A distribuição t de Student é uma alternativa melhor nesse caso, pois acomoda essas caudas pesadas, capturando \
+melhor a chance de eventos extremos. Isso leva a estimativas de risco mais precisas, especialmente para métricas \
+como o VaR, que são influenciadas por esses eventos.
+
+
 
 """
 col_dados.markdown(md)
