@@ -15,6 +15,7 @@ from scipy.stats import t
 import matplotlib.pyplot as plt
 import plotly.express as px
 
+np.random.seed(42)
 
 # Configuração da página
 st.set_page_config(layout="wide")
@@ -83,14 +84,14 @@ análise de resultados em diferentes cenários aleatórios. Neste projeto, utili
 para analisar o risco e retorno de um portifólio de ações. Assim, foi escolhida a distribuição t Student para
 estimar o Value at Risk (VaR) de um portifólio de ações.
 
-## Fundamentos Estatísticos da Simulação
+## Fundamentação
 
 A distribuição t de Student é uma distribuição de probabilidade contínua que surge quando se estima a média \
 de uma população normalmente distribuída, mas a variância populacional é desconhecida e substituída pela \
 variância amostral. Ela é particularmente útil em amostras de pequeno tamanho, onde a incerteza sobre a \
 variância populacional é maior.
 
-Matematicamente, a distribuição t de Student com 𝜈 graus de liberdade é definida pela função de densidade de \
+Matematicamente, a distribuição t de Student com __𝜈__ graus de liberdade é definida pela função de densidade de \
 probabilidade:"""
 
 col_dados.markdown(md)
@@ -101,8 +102,8 @@ f(t) = \frac{\Gamma \left( \frac{\nu + 1}{2} \right)}{\sqrt{\nu \pi} \Gamma \lef
 col_dados.latex(latex_code)
 
 
-md = """\
-onde Γ é a função gama e 𝜈 representa os graus de liberdade.
+md = """\\
+onde __Γ__ é a função gama e __𝜈__ representa os graus de liberdade.
 
 Em análises financeiras, o modelo de distribuição normal é frequentemente usado para representar os retornos \
 de ativos. Contudo, dados reais mostram que esses retornos geralmente têm "caudas pesadas", ou seja, eventos \
@@ -113,6 +114,36 @@ melhor a chance de eventos extremos. Isso leva a estimativas de risco mais preci
 como o VaR, que são influenciadas por esses eventos.
 
 
+## Metodologia
+
+Para realizar a análise de risco e retorno do portifólio de ações, foram seguidos os seguintes passos:
+
+1. Definição dos parâmetros da simulação: horizonte de tempo, graus de liberdade da distribuição t de Student, \
+nível de confiança para o VaR e número de simulações de Monte Carlo.
+
+2. Coleta dos dados históricos dos ativos: os preços de fechamento ajustados dos ativos foram baixados do Yahoo \
+Finance para o período especificado.
+
+3. Cálculo dos retornos diários dos ativos: os retornos diários foram calculados com base nos preços de fechamento \
+ajustados.
+
+4. Estimação dos parâmetros da distribuição t de Student: para cada ativo, foram calculados o retorno médio diário \
+e a volatilidade média diária.
+
+5. Simulação de Monte Carlo: foram realizadas simulações de Monte Carlo para gerar cenários de retornos futuros \
+para cada ativo, com base na distribuição t de Student.
+
+6. Cálculo dos retornos diários da carteira: os retornos diários da carteira foram calculados como a soma dos retornos \
+diários dos ativos, ponderados pelos pesos especificados.
+
+7. Cálculo dos retornos acumulados da carteira: os retornos acumulados da carteira para o horizonte de tempo \
+especificado foram calculados.
+
+8. Cálculo do VaR: o VaR para o horizonte de tempo especificado foi calculado com base na distribuição dos retornos \
+acumulados da carteira.
+
+9. Análise dos resultados: os resultados foram apresentados em termos de VaR e distribuição dos retornos acumulados \
+da carteira.
 
 """
 col_dados.markdown(md)
@@ -150,16 +181,23 @@ col_graficos.write(resultados)
 # Parâmetros da distribuição t de Student para os retornos dos ativos
 n_s = int(n_simulations)
 n_h = int(horizon)
-simulated_returns = []
+simulated_returns_t = []
+simulated_returns_normal = []
 
 for i, ticker in enumerate(valid_tickers):
     df = int(degrees_freedom)
     loc = retornos[ticker]['Retorno Médio Diário']
     scale = retornos[ticker]['Volatilidade Média Diária']
-    simulated_returns.append(normalized_weights[i] * t.rvs(df=df, loc=loc, scale=scale, size=(n_s, n_h)))
+
+    # simular com t-Student
+    simulated_returns_t.append(normalized_weights[i] * t.rvs(df=df, loc=loc, scale=scale, size=(n_s, n_h)))
+
+    # simular com normal
+    simulated_returns_normal.append(normalized_weights[i] * np.random.normal(loc=loc, scale=scale, size=(n_s, n_h)))
+
 
 # Cálculo dos retornos diários da carteira
-portfolio_returns = np.sum(simulated_returns, axis=0)
+portfolio_returns = np.sum(simulated_returns_t, axis=0)
 
 # Cálculo dos retornos acumulados da carteira para o horizonte de tempo
 cumulative_returns = np.prod(1 + portfolio_returns, axis=1) - 1
@@ -168,7 +206,7 @@ cumulative_returns = np.prod(1 + portfolio_returns, axis=1) - 1
 VaR = np.percentile(cumulative_returns, 100 - float(confidence_level))
 
 # Impressão do resultado
-col_graficos.write(f'VaR ({confidence_level}% de confiança) para {horizon} dias: {VaR:.4f}')
+col_graficos.write(f'VaR ({confidence_level}% de confiança) para {horizon} dias: {VaR:.4%}')
 
 # Histograma dos retornos acumulados da carteira
 
@@ -176,9 +214,29 @@ fig = px.histogram(
     cumulative_returns, 
     nbins=200, 
     labels={'value': 'Retorno Acumulado da Carteira'}, 
-    title=f'Distribuição dos Retornos da Carteira ({horizon} dias)'
+    title=f'Distribuição dos Retornos da Carteira ({horizon} dias) - Simulação com t-Student',
 )
 
-fig.update_layout(xaxis_title='Retorno Acumulado da Carteira', yaxis_title='Frequência')    
+fig.update_layout(xaxis_title='Retorno Acumulado da Carteira', yaxis_title='Frequência', showlegend=False)    
 col_graficos.plotly_chart(fig)
+
+
+# calculo com a simulacao da normal
+portfolio_returns_normal = np.sum(simulated_returns_normal, axis=0)
+cumulative_returns_normal = np.prod(1 + portfolio_returns_normal, axis=1) - 1
+VaR_normal = np.percentile(cumulative_returns_normal, 100 - float(confidence_level))
+
+# Impressão do resultado
+col_graficos.write(f'VaR ({confidence_level}% de confiança) para {horizon} dias: {VaR_normal:.4%}')
+
+fig2 = px.histogram(
+    cumulative_returns_normal, 
+    nbins=200, 
+    labels={'value': 'Retorno Acumulado da Carteira'}, 
+    title=f'Distribuição dos Retornos da Carteira ({horizon} dias) - Simulação com Normal',
+)
+
+fig2.update_layout(xaxis_title='Retorno Acumulado da Carteira', yaxis_title='Frequência', showlegend=False)
+
+col_graficos.plotly_chart(fig2)
 
