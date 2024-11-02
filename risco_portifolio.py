@@ -33,7 +33,7 @@ degrees_freedom = st.sidebar.text_input('Graus de Liberdade', 5)
 confidence_level = st.sidebar.text_input('Nível de Confiança', 95)
 
 # Número de simulações de Monte Carlo
-n_simulations = st.sidebar.text_input('Número de Simulações', 10000)
+n_simulations = st.sidebar.text_input('Número de Simulações', 1000)
 
 
 # Título da seção de dados
@@ -73,6 +73,39 @@ for i in range(6):
 container = st.container()
 col_dados, col_graficos = container.columns(2)
 
+# documentar o processo em markdown
+md = """
+
+## Introdução
+
+A Simulação de Monte Carlo é uma técnica utilizada para modelar sistemas complexo e incertos, permitindo a \
+análise de resultados em diferentes cenários aleatórios. Neste projeto, utiliza-se a simulação de Monte Carlo \
+para analisar o risco e retorno de um portifólio de ações. Assim, foi escolhida a distribuição t Student para
+estimar o Value at Risk (VaR) de um portifólio de ações.
+
+## Fundamentos Estatísticos da Simulação
+
+A distribuição t de Student é uma distribuição de probabilidade que é utilizada para estimar a média de uma \
+população quando a amostra é pequena e a população tem uma distribuição normal. A distribuição t de Student é \
+comumente utilizada para calcular intervalos de confiança e testes de hipóteses.
+
+Matematicamente, a distribuição t de Student com 𝜈 graus de liberdade é definida pela função de densidade de \
+probabilidade:"""
+
+col_dados.markdown(md)
+
+latex_code = r"""
+f(t) = \frac{\Gamma \left( \frac{\nu + 1}{2} \right)}{\sqrt{\nu \pi} \Gamma \left( \frac{\nu}{2} \right)} \left( 1 + \frac{t^2}{\nu} \right)^{-\frac{\nu + 1}{2}}
+"""
+col_dados.latex(latex_code)
+
+
+md = """\
+onde Γ é a função gama e 𝜈 representa os graus de liberdade.
+
+"""
+col_dados.markdown(md)
+
    
 # Filtrar tickers e pesos válidos
 valid_tickers = [ticker for ticker in tickers if ticker]
@@ -101,7 +134,7 @@ for ticker in valid_tickers:
 resultados = pd.DataFrame(retornos).T.reset_index().rename(columns={'index': 'Ticker'})
 
 # Exibir o DataFrame na coluna de dados sem o índice
-col_dados.write(resultados)
+col_graficos.write(resultados)
 
 # Parâmetros da distribuição t de Student para os retornos dos ativos
 n_s = int(n_simulations)
@@ -124,7 +157,7 @@ cumulative_returns = np.prod(1 + portfolio_returns, axis=1) - 1
 VaR = np.percentile(cumulative_returns, 100 - float(confidence_level))
 
 # Impressão do resultado
-col_dados.write(f'VaR ({confidence_level}% de confiança) para {horizon} dias: {VaR:.4f}')
+col_graficos.write(f'VaR ({confidence_level}% de confiança) para {horizon} dias: {VaR:.4f}')
 
 # Histograma dos retornos acumulados da carteira
 
