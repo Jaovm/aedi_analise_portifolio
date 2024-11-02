@@ -19,7 +19,6 @@ np.random.seed(42)
 
 # Configuração da página
 st.set_page_config(layout="wide")
-st.title('Análise de Risco e Retorno de Portifólio de Ações')
 
 # Sidebar
 st.sidebar.header('Parâmetros')
@@ -36,6 +35,13 @@ confidence_level = st.sidebar.text_input('Nível de Confiança', 95)
 # Número de simulações de Monte Carlo
 n_simulations = st.sidebar.text_input('Número de Simulações', 1000)
 
+# Estabelecer um limite de 300000 na relação entre o produto de horizonte e o número de simulações
+if int(horizon) * int(n_simulations) * int(degrees_freedom) > 20000000:
+    st.sidebar.error("O produto entre Horizonte de Tempo, Graus de Liberdade e Número de Simulações não pode exceder 20.000.000 Por favor, ajuste os valores.")
+    st.stop()
+
+# Título da página
+st.title('Análise de Risco e Retorno de Portifólio de Ações')
 
 # Título da seção de dados
 st.sidebar.markdown('## Período para o Histórico')
@@ -79,7 +85,7 @@ md = """
 
 ## Introdução
 
-A Simulação de Monte Carlo é uma técnica utilizada para modelar sistemas complexo e incertos, permitindo a \
+A Simulação de Monte Carlo é uma técnica utilizada para modelar sistemas complexos e incertos, permitindo a \
 análise de resultados em diferentes cenários aleatórios. Neste projeto, utiliza-se a simulação de Monte Carlo \
 para analisar o risco e retorno de um portifólio de ações. Assim, foi escolhida a distribuição t Student para
 estimar o Value at Risk (VaR) de um portifólio de ações.
@@ -130,13 +136,13 @@ nível de confiança para o VaR e número de simulações de Monte Carlo.
 2. Coleta dos dados históricos dos ativos: os preços de fechamento ajustados dos ativos foram baixados do Yahoo \
 Finance para o período especificado.
 
-3. Cálculo dos retornos diários dos ativos: os retornos diários foram calculados com base nos preços de fechamento \
+3. Cálculo dos retornos diários dos ativos: os retornos diários são calculados com base nos preços de fechamento \
 ajustados.
 
 4. Estimação dos parâmetros da distribuição t de Student: para cada ativo, foram calculados o retorno médio diário \
 e a volatilidade média diária.
 
-5. Simulação de Monte Carlo: foram realizadas simulações de Monte Carlo para gerar cenários de retornos futuros \
+5. Simulação de Monte Carlo: são realizadas simulações de Monte Carlo para gerar cenários de retornos futuros \
 para cada ativo, com base na distribuição t de Student.
 
 6. Cálculo dos retornos diários da carteira: os retornos diários da carteira foram calculados como a soma dos retornos \
