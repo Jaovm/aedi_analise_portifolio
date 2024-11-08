@@ -6,6 +6,7 @@ Utiliza streamlit para interface gráfica.
 
 Autor: Fernando sola Pereira
 """
+import random
 
 import streamlit as st
 import yfinance as yf
@@ -15,7 +16,9 @@ from scipy.stats import t
 import matplotlib.pyplot as plt
 import plotly.express as px
 
-np.random.seed(42)
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
 
 # Configuração da página
 st.set_page_config(layout="wide")
@@ -62,7 +65,7 @@ st.sidebar.markdown('## Dados dos Ativos')
 col1, col2 = st.sidebar.columns(2)
 
 #colocar 6 tickers das principais ações da B3
-s_tickers = ['PETR4.SA', 'VALE3.SA', 'ITUB4.SA', 'BBDC4.SA', 'ABEV3.SA', 'B3SA3.SA']
+s_tickers = ['PETR4.SA', 'VALE3.SA', 'ITUB4.SA', 'BBDC4.SA', 'ABEV3.SA', 'BBAS3.SA']
 s_weights = [1.0] * 6
 
 tickers = []
@@ -130,8 +133,11 @@ perda seja superior a 50% nesse período.
 
 Para realizar a análise de risco e retorno do portifólio de ações, foram seguidos os seguintes passos:
 
-1. Definição dos parâmetros da simulação: horizonte de tempo, graus de liberdade da distribuição t de Student, \
-nível de confiança para o VaR e número de simulações de Monte Carlo.
+1. Definição dos parâmetros da simulação: 
+    * Horizonte de Tempo: número de dias para o cálculo dos retornos acumulados da carteira.
+    * Graus de liberdade: Graus de liberdade da distribuição t de Student
+    * Nível de confiança para o VaR 
+    * Número de simulações de Monte Carlo.
 
 2. Coleta dos dados históricos dos ativos: os preços de fechamento ajustados dos ativos foram baixados do Yahoo \
 Finance para o período especificado.
@@ -203,51 +209,43 @@ col_graficos.write(resultados)
 # Parâmetros da distribuição t de Student para os retornos dos ativos
 n_s = int(n_simulations)
 n_h = int(horizon)
+
 simulated_returns_t = []
 simulated_returns_normal = []
 
 for i, ticker in enumerate(valid_tickers):
-    df = int(degrees_freedom)
     loc = retornos[ticker]['Retorno Médio Diário']
     scale = retornos[ticker]['Volatilidade Média Diária']
-
-    # simular com t-Student
-    simulated_returns_t.append(normalized_weights[i] * t.rvs(df=df, loc=loc, scale=scale, size=(n_s, n_h)))
+    peso = retornos[ticker]['Peso Normalizado']
 
     # simular com normal
-    simulated_returns_normal.append(normalized_weights[i] * np.random.normal(loc=loc, scale=scale, size=(n_s, n_h)))
+    simulated_returns_normal.append(peso * np.random.normal(loc=loc, scale=scale, size=(n_s, n_h)))
+
+    # simular com t-Student
+    df = int(degrees_freedom)
+    simulated_returns_t.append(peso * t.rvs(df=df, loc=loc, scale=scale, size=(n_s, n_h)))
+
 
 
 # Cálculo dos retornos diários da carteira
 portfolio_returns = np.sum(simulated_returns_t, axis=0)
-
-# Cálculo dos retornos acumulados da carteira para o horizonte de tempo
 cumulative_returns = np.prod(1 + portfolio_returns, axis=1) - 1
-
-# Cálculo do VaR (95% de confiança)
 VaR = np.percentile(cumulative_returns, 100 - float(confidence_level))
-
-# Impressão do resultado
 col_graficos.markdown(f'VaR - t de Student ({confidence_level}% de confiança) para {horizon} dias: __{VaR:.4%}__')
-
 
 # calculo com a simulacao da normal
 portfolio_returns_normal = np.sum(simulated_returns_normal, axis=0)
 cumulative_returns_normal = np.prod(1 + portfolio_returns_normal, axis=1) - 1
 VaR_normal = np.percentile(cumulative_returns_normal, 100 - float(confidence_level))
-# Impressão do resultado
 col_graficos.markdown(f'VaR - Normal ({confidence_level}% de confiança) para {horizon} dias: __{VaR_normal:.4%}__')
-# Histograma dos retornos acumulados da carteira com t-Student e Normal
 
+# Histograma dos retornos acumulados da carteira com t-Student e Normal
 fig = px.histogram(
     pd.DataFrame({'t de Student':cumulative_returns, 'Normal':cumulative_returns_normal}), 
     nbins=200, 
     opacity=0.5, 
     labels={'value': 'Retorno Acumulado da Carteira'}, 
     title=f'Distribuição dos Retornos da Carteira ({horizon} dias)',
-    # histnorm='probability',
-    # legend='t de Student',
-    # hover_name='t de Student'
 )
 
 fig.update_layout(
@@ -261,4 +259,3 @@ fig.add_vline(x=VaR, line_width=3, line_dash="dash", line_color="green", annotat
 fig.add_vline(x=VaR_normal, line_width=3, line_dash="dash", line_color="red", annotation_text='VaR Normal', annotation_position="top right")
 
 col_graficos.plotly_chart(fig)
-
