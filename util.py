@@ -183,7 +183,6 @@ def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk
 
     # Configurar o layout do gráfico, incluindo a posição da legenda
     fig.update_layout(
-        title='Fronteira Eficiente de Markowitz - Simulação de Monte Carlo',
         xaxis_title='Risco (Desvio Padrão)',
         yaxis_title='Retorno Esperado',
         coloraxis_colorbar_title='Sharpe Ratio',

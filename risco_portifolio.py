@@ -30,6 +30,9 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
+# outras variaveis globais
+LIMITE_SIMULACOES = 20000000
+
 # utilizar o espaço todo do container
 st.set_page_config(layout="wide")
 
@@ -38,6 +41,17 @@ st.title('Análise de Risco e Retorno de Portifólio de Ações')
 
 # título sidebar
 st.sidebar.header('Parâmetros')
+
+st.markdown(
+    """
+    <style>
+        section[data-testid="stSidebar"] {
+            width: 500px !important; # Set the width to your desired value
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 
@@ -84,7 +98,6 @@ with col6:
 
 
 # Estabelecer um limite de 300000 na relação entre o produto de horizonte e o número de simulações
-LIMITE_SIMULACOES = 2000000000
 if int(horizon) * int(n_simulations) * int(degrees_freedom) > LIMITE_SIMULACOES:
     st.sidebar.error(f"O produto entre Horizonte de Tempo, Graus de Liberdade e Número de Simulações não pode exceder {LIMITE_SIMULACOES} Por favor, ajuste os valores.")
     st.stop()
