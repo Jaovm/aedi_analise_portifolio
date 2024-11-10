@@ -151,39 +151,55 @@ def optimize_portfolio_allocation(valid_tickers, daily_returns_stocks, num_portf
     return results_frame,max_sharpe_port,min_risk_port
 
 
-def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk_port):
+def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk_port, daily_returns_stocks):
     # Criar o gráfico base com go.Scatter
     fig = px.scatter(
         x=results_frame['Risco'], 
         y=results_frame['Retorno'], 
         color=results_frame['Sharpe'], 
         color_continuous_scale='viridis',
-        opacity=0.5,
+        opacity=0.9,
     )
 
     # Adicionar o ponto do portfólio Máx. Sharpe
-    fig.add_trace(go.Scatter(
+    fig.add_trace(go.Scattergl(
         x=[max_sharpe_port['Risco']], 
         y=[max_sharpe_port['Retorno']], 
-        mode='markers',
-        marker=dict(color='red', size=20, symbol='circle-open-dot', opacity=1, line=dict(width=2, color='black')), 
-        name='Melhor Sharpe',
-        showlegend=True
+        mode='markers+text',
+        marker=dict(size=20, opacity=1, line=dict(width=1, color='black'), color='red', symbol='circle-open'), 
+        text=['Melhor Sharpe'],
+        textposition='top center',
+        showlegend=False
     ))
 
     # Adicionar o ponto do portfólio
-    fig.add_trace(go.Scatter(
+    fig.add_trace(go.Scattergl(
         x=[min_risk_port['Risco']], 
         y=[min_risk_port['Retorno']], 
-        mode='markers', 
-        marker=dict(color='green', size=20, symbol='circle-open-dot', opacity=1, line=dict(width=2, color='black')), 
-        name='Menor Risco', 
-        showlegend=True
+        mode='markers+text', 
+        marker=dict(size=20, symbol='circle-open', opacity=1, line=dict(width=2, color='black'), color='green'), 
+        text=['Menor Risco'], 
+        textposition='top center',
+        showlegend=False
     ))
+
+    # criar um ponto para cada média (y), desvio (x) dos ativos
+    means = daily_returns_stocks.mean()
+    stds = daily_returns_stocks.std()
+    for mean, std, ticker in zip(means, stds, daily_returns_stocks.columns):
+        fig.add_trace(go.Scattergl(
+            x=[std], 
+            y=[mean], 
+            mode='markers+text', 
+            text=[ticker],
+            textposition='top center',
+            marker=dict(size=15, symbol='x', opacity=1, line=dict(width=1, color='black')), 
+            showlegend=False
+        ))
 
     # Configurar o layout do gráfico, incluindo a posição da legenda
     fig.update_layout(
-        xaxis_title='Risco (Desvio Padrão)',
+        xaxis_title='Risco',
         yaxis_title='Retorno Esperado',
         coloraxis_colorbar_title='Sharpe Ratio',
         height=600,

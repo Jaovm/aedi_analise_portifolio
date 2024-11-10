@@ -36,6 +36,7 @@ LIMITE_SIMULACOES = 20000000
 # utilizar o espaço todo do container
 st.set_page_config(layout="wide")
 
+
 # título da página
 st.title('Análise de Risco e Retorno de Portifólio de Ações')
 
@@ -177,7 +178,9 @@ container.plotly_chart(fig)
 container.markdown('## Fronteira Eficiente de Markowitz')
 num_portifolios = int(numero_carteiras_fem)
 results_frame, max_sharpe_port, min_risk_port = util.optimize_portfolio_allocation(valid_tickers, daily_returns_stocks, num_portifolios)
-fig = util.generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk_port)
+
+# incluir os risco/reetorno dos ativos isolados
+fig = util.generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk_port, daily_returns_stocks)
 container.plotly_chart(fig)
 
 
