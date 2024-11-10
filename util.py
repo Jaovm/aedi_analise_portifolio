@@ -74,7 +74,6 @@ def generate_price_history_fig(data_yf_stocks, data_yf_index) -> go.Figure:
     fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
     fig.update_layout(
         height=700,
-        title_text="Histórico de Preços dos Ativos e do Índice Bovespa",
         showlegend=True,
     )    
 
@@ -159,6 +158,7 @@ def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk
         y=results_frame['Retorno'], 
         color=results_frame['Sharpe'], 
         color_continuous_scale='viridis',
+        opacity=0.5,
     )
 
     # Adicionar o ponto do portfólio Máx. Sharpe
@@ -167,17 +167,17 @@ def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk
         y=[max_sharpe_port['Retorno']], 
         mode='markers',
         marker=dict(color='red', size=20, symbol='circle-open-dot', opacity=1, line=dict(width=2, color='black')), 
-        name='Máx. Sharpe',
+        name='Melhor Sharpe',
         showlegend=True
     ))
 
-    # Adicionar o ponto do portfólio Mín. Risco
+    # Adicionar o ponto do portfólio
     fig.add_trace(go.Scatter(
         x=[min_risk_port['Risco']], 
         y=[min_risk_port['Retorno']], 
         mode='markers', 
-        marker=dict(color='gray', size=20, symbol='circle-open-dot', opacity=1, line=dict(width=2, color='black')), 
-        name='Mín. Risco', 
+        marker=dict(color='green', size=20, symbol='circle-open-dot', opacity=1, line=dict(width=2, color='black')), 
+        name='Menor Risco', 
         showlegend=True
     ))
 
