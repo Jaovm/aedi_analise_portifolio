@@ -65,7 +65,7 @@ st.sidebar.markdown('## Dados dos Ativos')
 col1, col2 = st.sidebar.columns(2)
 
 #colocar 6 tickers das principais ações da B3
-s_tickers = ['TAEE4.SA', 'VALE3.SA', 'VIVT3.SA', 'BBSE3.SA', 'BBAS3.SA']
+s_tickers = ['EGIE3.SA', 'VALE3.SA', 'VIVT3.SA', 'BBSE3.SA', 'BBAS3.SA']
 s_weights = [0.2] * len(s_tickers)
 
 input_tickers = []
@@ -83,13 +83,18 @@ for i in range(len(s_tickers)):
 # Seção de configuração do VaR
 #################################################
 st.sidebar.markdown('## Value at Risk (VaR)')
+
+# opção anualizado ou diário
+anualizado = st.sidebar.radio('Frequência do VaR', ['Anual', 'Diário'])
+
 col5, col6 = st.sidebar.columns(2)
 
 with col5:
-    # Horizonte de tempo (em dias)
-    horizon = st.text_input('Horizonte de Tempo (dias)', 30)
+    # Horizonte de tempo (em anos ou dias)
+
+    horizon = st.text_input(f'Horizonte de Tempo ({anualizado})', 5)
     # Número de simulações de Monte Carlo
-    n_simulations = st.text_input('Número de Simulações', 1000)
+    n_simulations = st.text_input('Número de Simulações', 20000)
 
 with col6:
     # Graus de liberdade da distribuição t de Student
@@ -121,7 +126,7 @@ with col4:
 
 
 #################################################
-# Seção de configuração de período histórico
+# Seção de Fronteira Eficiente de Markowitz
 #################################################
 # Título da seção de dados
 st.sidebar.markdown('## Fronteira Eficiente de Markowitz')
@@ -129,10 +134,16 @@ st.sidebar.markdown('## Fronteira Eficiente de Markowitz')
 # Período de análise dos dados históricos
 numero_carteiras_fem = st.sidebar.text_input('Número de Carteiras Simuladas', 50000)
 
+#################################################
+# Seção de Investimento
+#################################################
+aporte_inicial = st.sidebar.text_input('Aporte Inicial (R$)', 35000)
+
 
 #################################################
 # Processamentos
 #################################################
+annualized_returns = anualizado == 'Anual'
 valid_tickers, normalized_weights = util.get_valid_tickers_and_normalized_weights(input_tickers, input_weights)
 
 # Baixar os dados históricos
@@ -177,10 +188,10 @@ container.plotly_chart(fig)
 ##########################################################################################
 container.markdown('## Fronteira Eficiente de Markowitz')
 num_portifolios = int(numero_carteiras_fem)
-results_frame, max_sharpe_port, min_risk_port = util.optimize_portfolio_allocation(valid_tickers, daily_returns_stocks, num_portifolios)
+results_frame, max_sharpe_port, min_risk_port = util.optimize_portfolio_allocation(valid_tickers, daily_returns_stocks, num_portifolios, annualized_returns)
 
 # incluir os risco/reetorno dos ativos isolados
-fig = util.generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk_port, daily_returns_stocks)
+fig = util.generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk_port, daily_returns_stocks, valid_tickers, normalized_weights, annualized_returns)
 container.plotly_chart(fig)
 
 
@@ -203,19 +214,42 @@ portifolios = []
 for i, ticker in enumerate(valid_tickers):
     portifolios.append({
     'Ativo': ticker,
-    'Pesos Informados Normalizados': normalized_weights[i],
+    'Pesos Informados': normalized_weights[i],
     'Menor Risco': min_risk_port[ticker + '_weight'],
     'Melhor Sharpe': max_sharpe_port[ticker + '_weight'],
 })
     
-df_portifolios = pd.DataFrame(portifolios).loc[:, 'Pesos Informados Normalizados':]
+df_portifolios = pd.DataFrame(portifolios).loc[:, 'Pesos Informados':]
 
-for column in df_portifolios.columns:
-    fig, VaR, VaR_normal = util.generate_return_simulations(horizon, n_simulations, degrees_freedom, confidence_level, valid_tickers, df_portifolios[column], daily_returns_stocks)
-    container.markdown(f'## Value at Risk (VaR) - {column}')
-    container.markdown(f'VaR - t de Student ({confidence_level}% de confiança) para {horizon} dias: __{VaR:.4%}__')
-    container.markdown(f'VaR - Normal ({confidence_level}% de confiança) para {horizon} dias: __{VaR_normal:.4%}__')
-    container.plotly_chart(fig)
+for portifolio, coluna in zip(df_portifolios.columns, container.columns(3)):
+    fig,VaR,VaR_normal, mean_portfolio_return, mean_portfolio_return_normal = util.generate_return_simulations(
+        horizon, 
+        n_simulations, 
+        degrees_freedom, 
+        confidence_level, 
+        valid_tickers, 
+        df_portifolios[portifolio], 
+        daily_returns_stocks, 
+        annualized_returns=annualized_returns
+        )
+    with coluna:
+        st.markdown(f'#### {portifolio}')
+
+        st.markdown(f'__t de Student ({confidence_level}% de confiança) para {horizon} {"anos" if anualizado == "Anual" else "dias"}__')
+        st.markdown(f'VaR: __{VaR:.4%}__')
+        st.markdown(f'Esperança de Retorno: __{mean_portfolio_return:.4%}__')
+        ve = mean_portfolio_return * float(aporte_inicial) + float(aporte_inicial)
+        ve = f'{ve:,.2f}'.replace(',', 'v').replace('.', ',').replace('v', '.')
+        st.markdown(f'Valor Esperado: __R$ {ve}__')
+
+        st.markdown(f'__Normal ({confidence_level}% de confiança) para {horizon} {"anos" if anualizado == "Anual" else "dias"}__')
+        st.markdown(f'VaR: __{VaR_normal:.4%}__')
+        st.markdown(f'Esperança de Retorno: __{mean_portfolio_return_normal:.4%}__')
+        ve = mean_portfolio_return_normal * float(aporte_inicial) + float(aporte_inicial)
+        ve = f'{ve:,.2f}'.replace(',', 'v').replace('.', ',').replace('v', '.')
+        st.markdown(f'Valor Esperado: __R$ {ve}__')
+
+        st.plotly_chart(fig)
 
 
 # documentar o processo em markdown

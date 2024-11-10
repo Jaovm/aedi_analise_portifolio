@@ -24,6 +24,10 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
+# outras constantes
+CONSTANTE_ANUALIZACAO = 252
+
+
 def download_finance_data(tickers: str | List[str], start: str, end: str) -> pd.DataFrame:
     """
     Download finance data from Yahoo Finance
@@ -110,11 +114,15 @@ def generate_correlation_plot(df_retornos: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def optimize_portfolio_allocation(valid_tickers, daily_returns_stocks, num_portfolios):
+def optimize_portfolio_allocation(valid_tickers, daily_returns_stocks, num_portfolios, annualized_returns=True):
     
     returns = daily_returns_stocks.dropna()
     mean_returns = returns.mean()
     cov_matrix = returns.cov()
+
+    if annualized_returns:
+        mean_returns = mean_returns * CONSTANTE_ANUALIZACAO
+        cov_matrix = cov_matrix * CONSTANTE_ANUALIZACAO
 
     # Simulação de Portfólios Aleatórios
     num_portfolios = num_portfolios
@@ -151,7 +159,7 @@ def optimize_portfolio_allocation(valid_tickers, daily_returns_stocks, num_portf
     return results_frame,max_sharpe_port,min_risk_port
 
 
-def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk_port, daily_returns_stocks):
+def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk_port, daily_returns_stocks, valid_tickers, normalized_weights, annualized_returns=True):
     # Criar o gráfico base com go.Scatter
     fig = px.scatter(
         x=results_frame['Risco'], 
@@ -161,12 +169,38 @@ def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk
         opacity=0.9,
     )
 
+    # criar um ponto para cada média (y), desvio (x) dos ativos
+    drs = daily_returns_stocks.dropna()
+    means = drs.mean()[valid_tickers]
+    stds = drs.std()[valid_tickers]
+
+    if annualized_returns:
+        means = means * CONSTANTE_ANUALIZACAO
+        stds = stds * np.sqrt(CONSTANTE_ANUALIZACAO)
+
+    # Adicionar o ponto do portfólio informado
+    normalized_weights = np.asarray(normalized_weights)
+    cov_matrix = drs.cov()
+    portfolio_return = np.dot(normalized_weights, means)
+    portfolio_std_dev = np.sqrt(np.dot(normalized_weights.T, np.dot(cov_matrix, normalized_weights)))
+
+    
+    fig.add_trace(go.Scattergl(
+        x=[portfolio_std_dev], 
+        y=[portfolio_return], 
+        mode='markers+text', 
+        marker=dict(size=10, opacity=1, line=dict(width=1, color='gray'), color='green', symbol='star'), 
+        text=['Portifolio Informado'], 
+        textposition='top center',
+        showlegend=False
+    ))
+
     # Adicionar o ponto do portfólio Máx. Sharpe
     fig.add_trace(go.Scattergl(
         x=[max_sharpe_port['Risco']], 
         y=[max_sharpe_port['Retorno']], 
         mode='markers+text',
-        marker=dict(size=20, opacity=1, line=dict(width=1, color='black'), color='red', symbol='circle-open'), 
+        marker=dict(size=10, opacity=1, line=dict(width=1, color='gray'), color='red', symbol='star'), 
         text=['Melhor Sharpe'],
         textposition='top center',
         showlegend=False
@@ -177,21 +211,21 @@ def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk
         x=[min_risk_port['Risco']], 
         y=[min_risk_port['Retorno']], 
         mode='markers+text', 
-        marker=dict(size=20, symbol='circle-open', opacity=1, line=dict(width=2, color='black'), color='green'), 
+        marker=dict(size=10, opacity=1, line=dict(width=1, color='gray'), color='green', symbol='star'), 
         text=['Menor Risco'], 
         textposition='top center',
         showlegend=False
     ))
 
-    # criar um ponto para cada média (y), desvio (x) dos ativos
-    means = daily_returns_stocks.mean()
-    stds = daily_returns_stocks.std()
-    for mean, std, ticker in zip(means, stds, daily_returns_stocks.columns):
+    
+
+    for mean, std, ticker in zip(means, stds, drs.columns):
         fig.add_trace(go.Scattergl(
             x=[std], 
             y=[mean], 
             mode='markers+text', 
             text=[ticker],
+            name=ticker,
             textposition='top center',
             marker=dict(size=15, symbol='x', opacity=1, line=dict(width=1, color='black')), 
             showlegend=False
@@ -201,6 +235,7 @@ def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk
     fig.update_layout(
         xaxis_title='Risco',
         yaxis_title='Retorno Esperado',
+        yaxis_tickformat='.4f',
         coloraxis_colorbar_title='Sharpe Ratio',
         height=600,
         legend=dict(
@@ -211,7 +246,7 @@ def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk
         ),
         coloraxis_colorbar=dict(title="Sharpe Ratio"),
     )
-    
+
     return fig
 
 
@@ -232,7 +267,7 @@ def generate_portfolio_summary(valid_tickers, normalized_weights, daily_returns_
     return resultados
 
 
-def generate_return_simulations(horizon, n_simulations, degrees_freedom, confidence_level, valid_tickers, normalized_weights, daily_returns_stocks):
+def generate_return_simulations(horizon, n_simulations, degrees_freedom, confidence_level, valid_tickers, portifolio_weights, daily_returns_stocks, annualized_returns=True):
     # Parâmetros da distribuição t de Student para os retornos dos ativos
     n_s = int(n_simulations)
     n_h = int(horizon)
@@ -243,7 +278,12 @@ def generate_return_simulations(horizon, n_simulations, degrees_freedom, confide
     for i, ticker in enumerate(valid_tickers):
         loc = daily_returns_stocks[ticker].mean()
         scale = daily_returns_stocks[ticker].std()
-        peso = normalized_weights[i]
+        peso = portifolio_weights[i]
+
+        # anualizar
+        if annualized_returns:
+            loc = loc * CONSTANTE_ANUALIZACAO
+            scale = scale * np.sqrt(CONSTANTE_ANUALIZACAO)
 
         # simular com normal
         simulated_returns_normal.append(peso * np.random.normal(loc=loc, scale=scale, size=(n_s, n_h)))
@@ -258,11 +298,13 @@ def generate_return_simulations(horizon, n_simulations, degrees_freedom, confide
     portfolio_returns = np.sum(simulated_returns_t, axis=0)
     cumulative_returns = np.prod(1 + portfolio_returns, axis=1) - 1
     VaR = np.percentile(cumulative_returns, 100 - float(confidence_level))
+    mean_portfolio_return = np.mean(cumulative_returns)
 
     # calculo com a simulacao da normal
     portfolio_returns_normal = np.sum(simulated_returns_normal, axis=0)
     cumulative_returns_normal = np.prod(1 + portfolio_returns_normal, axis=1) - 1
     VaR_normal = np.percentile(cumulative_returns_normal, 100 - float(confidence_level))
+    mean_portfolio_return_normal = np.mean(cumulative_returns_normal)
 
     # Histograma dos retornos acumulados da carteira com t-Student e Normal
     fig = px.histogram(
@@ -270,8 +312,8 @@ def generate_return_simulations(horizon, n_simulations, degrees_freedom, confide
         nbins=200, 
         opacity=0.5, 
         labels={'value': 'Retorno Acumulado da Carteira'}, 
-        title=f'Distribuição dos Retornos da Carteira ({horizon} dias)',
-    )
+        title=f'Distribuição dos Retornos da Carteira ({horizon} {"anos" if annualized_returns else "dias"})',
+    )    
 
     fig.update_layout(
         xaxis_title='Retorno Acumulado da Carteira', 
@@ -282,4 +324,4 @@ def generate_return_simulations(horizon, n_simulations, degrees_freedom, confide
 
     fig.add_vline(x=VaR, line_width=3, line_dash="dash", line_color="green", annotation_text='VaR t-Student', annotation_position="top left")
     fig.add_vline(x=VaR_normal, line_width=3, line_dash="dash", line_color="red", annotation_text='VaR Normal', annotation_position="top right")
-    return fig,VaR,VaR_normal
+    return fig,VaR,VaR_normal, mean_portfolio_return, mean_portfolio_return_normal
