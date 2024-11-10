@@ -94,7 +94,7 @@ with col5:
 
     horizon = st.text_input(f'Horizonte de Tempo ({anualizado})', 5)
     # Número de simulações de Monte Carlo
-    n_simulations = st.text_input('Número de Simulações', 20000)
+    n_simulations = st.text_input('Número de Simulações', 1000)
 
 with col6:
     # Graus de liberdade da distribuição t de Student
@@ -132,7 +132,7 @@ with col4:
 st.sidebar.markdown('## Fronteira Eficiente de Markowitz')
 
 # Período de análise dos dados históricos
-numero_carteiras_fem = st.sidebar.text_input('Número de Carteiras Simuladas', 50000)
+numero_carteiras_fem = st.sidebar.text_input('Número de Carteiras Simuladas', 10000)
 
 #################################################
 # Seção de Investimento
