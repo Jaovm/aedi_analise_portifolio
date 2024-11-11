@@ -16,6 +16,7 @@ import yfinance as yf
 import plotly.express as px
 import plotly.graph_objects as go
 
+from scipy.optimize import minimize
 from scipy.stats import t
 from plotly.subplots import make_subplots
 
@@ -114,6 +115,51 @@ def generate_correlation_plot(df_retornos: pd.DataFrame) -> go.Figure:
     return fig
 
 
+def generate_efficient_frontier_points(daily_returns_stocks, annualized_returns=True) -> List:
+
+    returns = daily_returns_stocks.dropna()
+    mean_returns = returns.mean()
+
+    cov_matrix = returns.cov()
+
+    def portfolio_performance(weights, mean_returns, cov_matrix):
+        returns = np.dot(weights, mean_returns)
+        std = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
+        return returns, std
+
+    def minimize_volatility(weights, mean_returns, cov_matrix):
+        return portfolio_performance(weights, mean_returns, cov_matrix)[1]
+
+    # 4. Função para Otimizar Portfólio para Retorno Alvo
+    def efficient_portfolio(mean_returns, cov_matrix, target_return):
+        num_assets = len(mean_returns)
+        args = (mean_returns, cov_matrix)
+        constraints = (
+            {'type': 'eq', 'fun': lambda x: np.sum(x) - 1},
+            {'type': 'eq', 'fun': lambda x: np.dot(x, mean_returns) - target_return}
+        )
+        bounds = tuple((0, 1) for asset in range(num_assets))
+        result = minimize(minimize_volatility, num_assets * [1. / num_assets], args=args,
+                        method='SLSQP', bounds=bounds, constraints=constraints)
+        return result
+
+    # 5. Gerar a Fronteira Eficiente
+    target_returns = np.linspace(mean_returns.min(), mean_returns.max(), 200)
+    efficient_portfolios = []
+    for target_return in target_returns:
+        portfolio = efficient_portfolio(mean_returns, cov_matrix, target_return)
+        if portfolio.success:
+            returns, std = portfolio_performance(portfolio.x, mean_returns, cov_matrix)
+
+            if annualized_returns:
+                returns = returns * CONSTANTE_ANUALIZACAO
+                std = std * np.sqrt(CONSTANTE_ANUALIZACAO)
+
+            efficient_portfolios.append({'Retorno': returns, 'Volatilidade': std, 'Pesos': portfolio.x})
+
+    return efficient_portfolios    
+
+
 def optimize_portfolio_allocation(valid_tickers, daily_returns_stocks, num_portfolios, annualized_returns=True):
     
     returns = daily_returns_stocks.dropna()
@@ -130,28 +176,28 @@ def optimize_portfolio_allocation(valid_tickers, daily_returns_stocks, num_portf
     all_weights = np.zeros((num_portfolios, len(valid_tickers)))
 
     for i in range(num_portfolios):
-    # Gerar pesos aleatórios
+        # Gerar pesos aleatórios
         weights = np.random.random(len(valid_tickers))
         weights /= np.sum(weights)
 
-    # Calcula o retorno e risco do portfólio
+        # Calcula o retorno e risco do portfólio
         portfolio_return = np.dot(weights, mean_returns)
         portfolio_std_dev = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
 
-    # Armazena os resultados
+        # Armazena os resultados
         results[0,i] = portfolio_std_dev
         results[1,i] = portfolio_return
         results[2,i] = results[1,i] / results[0,i]
 
-    # Armazena os pesos
+        # Armazena os pesos
         all_weights[i, :] = weights
 
-# 5. Visualização da Fronteira Eficiente
+    # 5. Visualização da Fronteira Eficiente
     results_frame = pd.DataFrame(results.T, columns=['Risco', 'Retorno', 'Sharpe'])
     for i, ticker in enumerate(valid_tickers):
         results_frame[ticker + '_weight'] = all_weights[:, i]
 
-# 6. Encontrar os Portfólios Ótimos
+    # 6. Encontrar os Portfólios Ótimos
     max_sharpe_idx = results_frame['Sharpe'].idxmax()
     max_sharpe_port = results_frame.iloc[max_sharpe_idx]
     min_risk_idx = results_frame['Risco'].idxmin()
@@ -169,14 +215,21 @@ def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk
         opacity=0.9,
     )
 
+    efficient_frontier_points = generate_efficient_frontier_points(daily_returns_stocks, annualized_returns)
+    fig.add_trace(go.Scattergl(
+        x=np.asarray([point['Volatilidade'] for point in efficient_frontier_points]), 
+        y=np.asarray([point['Retorno'] for point in efficient_frontier_points]),
+        name='Fronteira Eficiente',
+        mode='lines',
+        opacity=0.7,
+        line=dict(width=3, color='gray', dash='dash'),
+        showlegend=False
+    ))
+
     # criar um ponto para cada média (y), desvio (x) dos ativos
     drs = daily_returns_stocks.dropna()
     means = drs.mean()[valid_tickers]
     stds = drs.std()[valid_tickers]
-
-    if annualized_returns:
-        means = means * CONSTANTE_ANUALIZACAO
-        stds = stds * np.sqrt(CONSTANTE_ANUALIZACAO)
 
     # Adicionar o ponto do portfólio informado
     normalized_weights = np.asarray(normalized_weights)
@@ -184,12 +237,15 @@ def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk
     portfolio_return = np.dot(normalized_weights, means)
     portfolio_std_dev = np.sqrt(np.dot(normalized_weights.T, np.dot(cov_matrix, normalized_weights)))
 
+    if annualized_returns:
+        portfolio_return = portfolio_return * CONSTANTE_ANUALIZACAO
+        portfolio_std_dev = portfolio_std_dev * np.sqrt(CONSTANTE_ANUALIZACAO)
     
     fig.add_trace(go.Scattergl(
         x=[portfolio_std_dev], 
         y=[portfolio_return], 
         mode='markers+text', 
-        marker=dict(size=10, opacity=1, line=dict(width=1, color='gray'), color='green', symbol='star'), 
+        marker=dict(size=15, opacity=1, line=dict(width=1, color='gray'), color='white', symbol='hourglass'), 
         text=['Portifolio Informado'], 
         textposition='top center',
         showlegend=False
@@ -200,24 +256,28 @@ def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk
         x=[max_sharpe_port['Risco']], 
         y=[max_sharpe_port['Retorno']], 
         mode='markers+text',
-        marker=dict(size=10, opacity=1, line=dict(width=1, color='gray'), color='red', symbol='star'), 
+        marker=dict(size=15, opacity=1, line=dict(width=1, color='gray'), color='darkgreen', symbol='arrow-bar-down'), 
+        name='Melhor Sharpe',
         text=['Melhor Sharpe'],
-        textposition='top center',
+        textposition='top left',
         showlegend=False
     ))
 
-    # Adicionar o ponto do portfólio
+    # Adicionar o ponto do portfólio Mín. Risco
     fig.add_trace(go.Scattergl(
         x=[min_risk_port['Risco']], 
         y=[min_risk_port['Retorno']], 
         mode='markers+text', 
-        marker=dict(size=10, opacity=1, line=dict(width=1, color='gray'), color='green', symbol='star'), 
+        marker=dict(size=15, opacity=1, line=dict(width=1, color='gray'), color='darkgreen', symbol='arrow-bar-right'), 
+        name='Menor Risco',
         text=['Menor Risco'], 
-        textposition='top center',
+        textposition='top left',
         showlegend=False
     ))
 
-    
+    if annualized_returns:
+        means = means * CONSTANTE_ANUALIZACAO
+        stds = stds * np.sqrt(CONSTANTE_ANUALIZACAO)
 
     for mean, std, ticker in zip(means, stds, drs.columns):
         fig.add_trace(go.Scattergl(
@@ -227,7 +287,7 @@ def generate_portfolio_risk_return_plot(results_frame, max_sharpe_port, min_risk
             text=[ticker],
             name=ticker,
             textposition='top center',
-            marker=dict(size=15, symbol='x', opacity=1, line=dict(width=1, color='black')), 
+            marker=dict(size=15, symbol='x', opacity=1, line=dict(width=1, color='gray')), 
             showlegend=False
         ))
 

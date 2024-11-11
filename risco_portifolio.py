@@ -94,7 +94,7 @@ with col5:
 
     horizon = st.text_input(f'Horizonte de Tempo ({anualizado})', 5)
     # Número de simulações de Monte Carlo
-    n_simulations = st.text_input('Número de Simulações', 1000)
+    n_simulations = st.text_input('Número de Simulações', 10000)
 
 with col6:
     # Graus de liberdade da distribuição t de Student
@@ -132,11 +132,12 @@ with col4:
 st.sidebar.markdown('## Fronteira Eficiente de Markowitz')
 
 # Período de análise dos dados históricos
-numero_carteiras_fem = st.sidebar.text_input('Número de Carteiras Simuladas', 10000)
+numero_carteiras_fem = st.sidebar.text_input('Número de Carteiras Simuladas', 50000)
 
 #################################################
 # Seção de Investimento
 #################################################
+st.sidebar.markdown('## Investimento')
 aporte_inicial = st.sidebar.text_input('Aporte Inicial (R$)', 35000)
 
 
@@ -235,19 +236,25 @@ for portifolio, coluna in zip(df_portifolios.columns, container.columns(3)):
     with coluna:
         st.markdown(f'#### {portifolio}')
 
-        st.markdown(f'__t de Student ({confidence_level}% de confiança) para {horizon} {"anos" if anualizado == "Anual" else "dias"}__')
-        st.markdown(f'VaR: __{VaR:.4%}__')
-        st.markdown(f'Esperança de Retorno: __{mean_portfolio_return:.4%}__')
+        st.markdown(f'##### __t de Student ({confidence_level}% de confiança) para {horizon} {"anos" if anualizado == "Anual" else "dias"}__')
+        st.markdown(f'* VaR: __{VaR:.4%}__')
+        ve = mean_portfolio_return * float(aporte_inicial) * VaR + float(aporte_inicial)
+        ve = f'{ve:,.2f}'.replace(',', 'v').replace('.', ',').replace('v', '.')
+        st.markdown(f'* Valor Esperado na Perda máxima: __{ve}__')
+        st.markdown(f'* Esperança de Retorno: __{mean_portfolio_return:.4%}__')
         ve = mean_portfolio_return * float(aporte_inicial) + float(aporte_inicial)
         ve = f'{ve:,.2f}'.replace(',', 'v').replace('.', ',').replace('v', '.')
-        st.markdown(f'Valor Esperado: __R$ {ve}__')
+        st.markdown(f'* Valor Esperado: __R$ {ve}__')
 
-        st.markdown(f'__Normal ({confidence_level}% de confiança) para {horizon} {"anos" if anualizado == "Anual" else "dias"}__')
-        st.markdown(f'VaR: __{VaR_normal:.4%}__')
-        st.markdown(f'Esperança de Retorno: __{mean_portfolio_return_normal:.4%}__')
+        st.markdown(f'##### __Normal ({confidence_level}% de confiança) para {horizon} {"anos" if anualizado == "Anual" else "dias"}__')
+        st.markdown(f'* VaR: __{VaR_normal:.4%}__')
+        ve = mean_portfolio_return_normal * float(aporte_inicial) * VaR_normal + float(aporte_inicial)
+        ve = f'{ve:,.2f}'.replace(',', 'v').replace('.', ',').replace('v', '.')
+        st.markdown(f'* Valor Esperado na Perda máxima: __{ve}__')
+        st.markdown(f'* Esperança de Retorno: __{mean_portfolio_return_normal:.4%}__')
         ve = mean_portfolio_return_normal * float(aporte_inicial) + float(aporte_inicial)
         ve = f'{ve:,.2f}'.replace(',', 'v').replace('.', ',').replace('v', '.')
-        st.markdown(f'Valor Esperado: __R$ {ve}__')
+        st.markdown(f'* Valor Esperado: __R$ {ve}__')
 
         st.plotly_chart(fig)
 
