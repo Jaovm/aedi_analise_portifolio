@@ -65,7 +65,7 @@ st.sidebar.markdown('## Dados dos Ativos')
 col1, col2 = st.sidebar.columns(2)
 
 #colocar 6 tickers das principais ações da B3
-s_tickers = ['TAEE4.SA', 'VALE3.SA', 'VIVT3.SA', 'BBSE3.SA', 'BBAS3.SA']
+s_tickers = ['MGLU3.SA', 'ITUB3.SA', '', '', '']
 s_weights = [0.2] * len(s_tickers)
 
 input_tickers = []
@@ -119,10 +119,10 @@ st.sidebar.markdown('## Período para o Histórico')
 col3, col4 = st.sidebar.columns(2)
 
 with col3:
-    inicio = st.text_input('Data de Início', '2020-01-01')
+    inicio = st.text_input('Data de Início', '2012-01-01')
 
 with col4:
-    fim = st.text_input('Data de Fim', '2024-10-31')
+    fim = st.text_input('Data de Fim', '2024-07-31')
 
 
 #################################################
@@ -149,8 +149,13 @@ valid_tickers, normalized_weights = util.get_valid_tickers_and_normalized_weight
 
 # Baixar os dados históricos
 dados = {}
-data_yf_stocks = util.download_finance_data(valid_tickers, start=inicio, end=fim)['Adj Close']
-data_yf_index = util.download_finance_data('^BVSP', start=inicio, end=fim)['Adj Close']
+data_yf_stocks = util.download_finance_data(valid_tickers, start=inicio, end=fim)
+data_yf_stocks = data_yf_stocks['Adj Close']
+data_yf_stocks = data_yf_stocks[valid_tickers]
+
+data_yf_index = util.download_finance_data('^BVSP', start=inicio, end=fim)
+data_yf_index = data_yf_index['Adj Close']
+container = st.container()
 
 container = st.container()
 
