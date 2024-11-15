@@ -65,7 +65,7 @@ st.sidebar.markdown('## Dados dos Ativos')
 col1, col2 = st.sidebar.columns(2)
 
 #colocar 6 tickers das principais ações da B3
-s_tickers = ['MGLU3.SA', 'ITUB3.SA', '', '', '']
+s_tickers = ['BBAS3.SA', 'TAEE3.SA', 'VALE3.SA', 'BBSE3.SA', 'VIVT3.SA']
 s_weights = [0.2] * len(s_tickers)
 
 input_tickers = []
