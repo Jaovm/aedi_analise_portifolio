@@ -352,8 +352,6 @@ def generate_return_simulations(horizon, n_simulations, degrees_freedom, confide
         df = int(degrees_freedom)
         simulated_returns_t.append(peso * t.rvs(df=df, loc=loc, scale=scale, size=(n_s, n_h)))
 
-
-
     # Cálculo dos retornos diários da carteira
     portfolio_returns = np.sum(simulated_returns_t, axis=0)
     cumulative_returns = np.prod(1 + portfolio_returns, axis=1) - 1
@@ -373,11 +371,11 @@ def generate_return_simulations(horizon, n_simulations, degrees_freedom, confide
         opacity=0.5, 
         labels={'value': 'Retorno Acumulado da Carteira'}, 
         title=f'Distribuição dos Retornos da Carteira ({horizon} {"anos" if annualized_returns else "dias"})',
-    )    
+    )
 
     fig.update_layout(
         xaxis_title='Retorno Acumulado da Carteira', 
-        yaxis_title='Frequência', 
+        yaxis_title='Frequência',
         showlegend=True,
         legend=dict(title='Distribuição', itemsizing='constant'),
     )

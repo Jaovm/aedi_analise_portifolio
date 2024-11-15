@@ -65,7 +65,7 @@ st.sidebar.markdown('## Dados dos Ativos')
 col1, col2 = st.sidebar.columns(2)
 
 #colocar 6 tickers das principais ações da B3
-s_tickers = ['VIVT3.SA', 'TAEE3.SA', 'EGIE3.SA', 'BBSE3.SA', 'TRPL4.SA']
+s_tickers = ['VIVT3.SA', 'TAEE3.SA', 'ITSA3.SA', 'BBSE3.SA', 'TRPL4.SA']
 s_weights = [0.2] * len(s_tickers)
 
 input_tickers = []
@@ -85,7 +85,7 @@ for i in range(len(s_tickers)):
 st.sidebar.markdown('## Value at Risk (VaR)')
 
 # opção anualizado ou diário
-anualizado = st.sidebar.radio('Frequência do VaR', ['Anual', 'Diário'])
+anualizado = st.sidebar.radio('Frequência do VaR', ['Diário','Anual'])
 
 col5, col6 = st.sidebar.columns(2)
 
