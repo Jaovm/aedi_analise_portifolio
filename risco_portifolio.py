@@ -33,6 +33,9 @@ np.random.seed(SEED)
 # outras variaveis globais
 LIMITE_SIMULACOES = 20000000
 
+# anualizado
+annualized_returns = False
+
 # utilizar o espaço todo do container
 st.set_page_config(layout="wide")
 
@@ -84,17 +87,14 @@ for i in range(len(s_tickers)):
 #################################################
 st.sidebar.markdown('## Value at Risk (VaR)')
 
-# opção anualizado ou diário
-anualizado = st.sidebar.radio('Frequência do VaR', ['Diário','Anual'])
-
 col5, col6 = st.sidebar.columns(2)
 
 with col5:
     # Horizonte de tempo (em anos ou dias)
 
-    horizon = st.text_input(f'Horizonte de Tempo ({anualizado})', 5)
+    horizon = st.text_input(f'Horizonte de Tempo ({anualizado})', 365)
     # Número de simulações de Monte Carlo
-    n_simulations = st.text_input('Número de Simulações', 10000)
+    n_simulations = st.text_input('Número de Simulações', 1000)
 
 with col6:
     # Graus de liberdade da distribuição t de Student
@@ -119,7 +119,7 @@ st.sidebar.markdown('## Período para o Histórico')
 col3, col4 = st.sidebar.columns(2)
 
 with col3:
-    inicio = st.text_input('Data de Início', '2014-01-01')
+    inicio = st.text_input('Data de Início', '2000-01-01')
 
 with col4:
     fim = st.text_input('Data de Fim', '2023-12-31')
@@ -144,7 +144,6 @@ aporte_inicial = st.sidebar.text_input('Aporte Inicial (R$)', 35000)
 #################################################
 # Processamentos
 #################################################
-annualized_returns = anualizado == 'Anual'
 valid_tickers, normalized_weights = util.get_valid_tickers_and_normalized_weights(input_tickers, input_weights)
 
 # Baixar os dados históricos
