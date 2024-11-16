@@ -92,7 +92,7 @@ col5, col6 = st.sidebar.columns(2)
 with col5:
     # Horizonte de tempo (em anos ou dias)
 
-    horizon = st.text_input(f'Horizonte de Tempo ({anualizado})', 365)
+    horizon = st.text_input(f'Horizonte de Tempo (D)', 365)
     # Número de simulações de Monte Carlo
     n_simulations = st.text_input('Número de Simulações', 1000)
 
