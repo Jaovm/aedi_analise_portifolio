@@ -119,7 +119,7 @@ st.sidebar.markdown('## Período para o Histórico')
 col3, col4 = st.sidebar.columns(2)
 
 with col3:
-    inicio = st.text_input('Data de Início', '2000-01-01')
+    inicio = st.text_input('Data de Início', '2014-01-01')
 
 with col4:
     fim = st.text_input('Data de Fim', '2023-12-31')
