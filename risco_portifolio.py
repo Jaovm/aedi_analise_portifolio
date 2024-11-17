@@ -62,23 +62,45 @@ st.markdown(
 #################################################
 # Seção de configuração de ativos
 #################################################
-st.sidebar.markdown('## Dados dos Ativos')
 
 # Ticker e peso dos ativos
 col1, col2 = st.sidebar.columns(2)
+col1.markdown('## Dados dos Ativos')
 
-#colocar 6 tickers das principais ações da B3
-s_tickers = ['WEGE3.SA', 'VALE3.SA', 'SUZB3.SA', 'EGIE3.SA', 'TRPL4.SA']
-s_weights = [0.2] * len(s_tickers)
+# inserir dois botões para adicionar ou remover ativos
+if st.session_state.get('s_tickers') is None:
+    #colocar 6 tickers das principais ações da B3
+    s_tickers = ['WEGE3.SA', 'VALE3.SA', 'SUZB3.SA', 'EGIE3.SA', 'TRPL4.SA']
+    s_weights = [1.0] * len(s_tickers)
+
+    st.session_state.s_tickers = s_tickers
+    st.session_state.s_weights = s_weights
+
+
+add_button = col1.button('+')
+remove_button = col1.button('-')
+
+# se clicar no botão de adicionar, adicionar um novo ticker e peso
+if add_button:
+    st.session_state.s_tickers.append('')
+    st.session_state.s_weights.append(1.0)
+
+# se clicar no botão de remover, remover o último ticker e peso
+if remove_button:
+    if len(st.session_state.s_tickers) > 0:
+        st.session_state.s_tickers.pop()
+        st.session_state.s_weights.pop()
+
+col1, col2 = st.sidebar.columns(2)
 
 input_tickers = []
 input_weights = []
-for i in range(len(s_tickers)):
+for i in range(len(st.session_state.s_tickers)):
     with col1:
-        ticker = st.text_input(f'Ticker do Ativo {i+1}', s_tickers[i])
+        ticker = st.text_input(f'Ticker do Ativo {i+1}', st.session_state.s_tickers[i])
         input_tickers.append(ticker)
     with col2:
-        weight = st.text_input(f'Peso do Ativo {i+1}', f'{s_weights[i]:.4}')
+        weight = st.text_input(f'Peso do Ativo {i+1}', f'{st.session_state.s_weights[i]:.4}')
         input_weights.append(weight)
 
 
