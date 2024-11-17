@@ -64,7 +64,7 @@ st.markdown(
 #################################################
 
 # Ticker e peso dos ativos
-col1, col2 = st.sidebar.columns(2)
+col1, col2, col3 = st.sidebar.columns([3, 1, 1])
 col1.markdown('## Dados dos Ativos')
 
 # inserir dois botões para adicionar ou remover ativos
@@ -77,8 +77,9 @@ if st.session_state.get('s_tickers') is None:
     st.session_state.s_weights = s_weights
 
 
-add_button = col1.button('+')
-remove_button = col1.button('-')
+# incluir os botoes na coluna 4 da sidebar
+add_button = col2.button('( + )')
+remove_button = col3.button('( - )')
 
 # se clicar no botão de adicionar, adicionar um novo ticker e peso
 if add_button:
