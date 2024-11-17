@@ -132,7 +132,7 @@ with col4:
 st.sidebar.markdown('## Fronteira Eficiente de Markowitz')
 
 # Período de análise dos dados históricos
-numero_carteiras_fem = st.sidebar.text_input('Número de Carteiras Simuladas', 50000)
+numero_carteiras_fem = st.sidebar.text_input('Número de Carteiras Simuladas', 10000)
 
 #################################################
 # Seção de Investimento
@@ -240,7 +240,7 @@ for portifolio, coluna in zip(df_portifolios.columns, container.columns(3)):
     with coluna:
         st.markdown(f'#### {portifolio}')
 
-        st.markdown(f'##### __t de Student ({confidence_level}% de confiança) para {horizon} {"anos" if anualizado == "Anual" else "dias"}__')
+        st.markdown(f'##### __t de Student ({confidence_level}% de confiança) para {horizon} {"anos" if annualized_returns else "dias"}__')
         st.markdown(f'* VaR: __{VaR:.4%}__')
         ve = mean_portfolio_return * float(aporte_inicial) * VaR + float(aporte_inicial)
         ve = f'{ve:,.2f}'.replace(',', 'v').replace('.', ',').replace('v', '.')
@@ -250,7 +250,7 @@ for portifolio, coluna in zip(df_portifolios.columns, container.columns(3)):
         ve = f'{ve:,.2f}'.replace(',', 'v').replace('.', ',').replace('v', '.')
         st.markdown(f'* Valor Esperado: __R$ {ve}__')
 
-        st.markdown(f'##### __Normal ({confidence_level}% de confiança) para {horizon} {"anos" if anualizado == "Anual" else "dias"}__')
+        st.markdown(f'##### __Normal ({confidence_level}% de confiança) para {horizon} {"anos" if annualized_returns else "dias"}__')
         st.markdown(f'* VaR: __{VaR_normal:.4%}__')
         ve = mean_portfolio_return_normal * float(aporte_inicial) * VaR_normal + float(aporte_inicial)
         ve = f'{ve:,.2f}'.replace(',', 'v').replace('.', ',').replace('v', '.')
