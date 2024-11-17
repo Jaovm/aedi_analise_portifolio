@@ -242,7 +242,7 @@ for portifolio, coluna in zip(df_portifolios.columns, container.columns(3)):
 
         st.markdown(f'##### __t de Student ({confidence_level}% de confiança) para {horizon} {"anos" if annualized_returns else "dias"}__')
         st.markdown(f'* VaR: __{VaR:.4%}__')
-        ve = mean_portfolio_return * float(aporte_inicial) * VaR + float(aporte_inicial)
+        ve = VaR * float(aporte_inicial) + float(aporte_inicial)
         ve = f'{ve:,.2f}'.replace(',', 'v').replace('.', ',').replace('v', '.')
         st.markdown(f'* Valor Esperado na Perda máxima: __{ve}__')
         st.markdown(f'* Esperança de Retorno: __{mean_portfolio_return:.4%}__')
@@ -252,7 +252,7 @@ for portifolio, coluna in zip(df_portifolios.columns, container.columns(3)):
 
         st.markdown(f'##### __Normal ({confidence_level}% de confiança) para {horizon} {"anos" if annualized_returns else "dias"}__')
         st.markdown(f'* VaR: __{VaR_normal:.4%}__')
-        ve = mean_portfolio_return_normal * float(aporte_inicial) * VaR_normal + float(aporte_inicial)
+        ve = VaR_normal * float(aporte_inicial) + float(aporte_inicial)
         ve = f'{ve:,.2f}'.replace(',', 'v').replace('.', ',').replace('v', '.')
         st.markdown(f'* Valor Esperado na Perda máxima: __{ve}__')
         st.markdown(f'* Esperança de Retorno: __{mean_portfolio_return_normal:.4%}__')
