@@ -80,7 +80,7 @@ def generate_price_history_fig(data_yf_stocks, data_yf_index) -> go.Figure:
     fig.update_layout(
         height=700,
         showlegend=True,
-    )    
+    )
 
     return fig
 
@@ -315,8 +315,8 @@ def generate_portfolio_summary(valid_tickers, normalized_weights, daily_returns_
     for i, ticker in enumerate(valid_tickers):
         portifolio.append({
         'Ativo': ticker,
-        'Retorno Médio Diário': f'{daily_returns_stocks[ticker].mean():.4f}',
-        'Volatilidade Média Diária': f'{daily_returns_stocks[ticker].std():.4f}',
+        'Retorno Médio Diário': f'{daily_returns_stocks[ticker].mean():.5f}',
+        'Volatilidade Média Diária': f'{daily_returns_stocks[ticker].std():.5f}',
         'Peso Informado (Normalizado)': f'{normalized_weights[i]:.2%}',
         'Melhor Sharpe': f"{max_sharpe_port[ticker + '_weight']:.2%}",
         'Menor Risco': f"{min_risk_port[ticker + '_weight']:.2%}",
@@ -326,47 +326,71 @@ def generate_portfolio_summary(valid_tickers, normalized_weights, daily_returns_
     resultados = pd.DataFrame(portifolio).set_index('Ativo')
     return resultados
 
+def calcular_var_carteira(retornos, pesos, horizonte=1, simulacoes=10000, nivel_confianca=0.95, graus_liberdade=5):
+    """
+    Calcula o Value at Risk (VaR) de uma carteira de ativos usando simulação de Monte Carlo.
+
+    Args:
+        retornos (pd.DataFrame): DataFrame com os retornos diários dos ativos.
+        pesos (np.array): Array com os pesos de cada ativo na carteira.
+        horizonte (int): Horizonte de tempo em dias para o cálculo do VaR (padrão: 1 dia).
+        simulacoes (int): Número de simulações de Monte Carlo (padrão: 10000).
+        nivel_confianca (float): Nível de confiança para o cálculo do VaR (padrão: 0.95).
+
+    Returns:
+        float: Value at Risk (VaR) em percentual.
+    """
+    # Calcular retornos da carteira
+    retornos_carteira = (retornos * pesos).sum(axis=1)
+
+    # Calcular média e desvio padrão dos retornos da carteira
+    media = retornos_carteira.mean()
+    desvio_padrao = retornos_carteira.std()
+
+    # Gerar retornos logarítmicos aleatórios para a carteira
+    np.random.seed(42)  # Para reprodutibilidade
+    retornos_simulados = np.random.normal(media, desvio_padrao, (horizonte, simulacoes))
+
+    retornos_simulados_t = np.random.standard_t(graus_liberdade, (horizonte, simulacoes))
+    retornos_simulados_t = retornos_simulados_t * desvio_padrao + media
+
+    # Calcular retornos logarítmicos acumulados
+    retornos_acumulados = retornos_simulados.cumsum(axis=0)
+    retornos_acumulados_t = retornos_simulados_t.cumsum(axis=0)
+
+    # Simular trajetórias de preços da carteira (assumindo valor inicial de 1)
+    caminhos_precos = np.exp(retornos_acumulados)
+    caminhos_precos_t = np.exp(retornos_acumulados_t)
+
+    # Calcular o retorno percentual
+    precos_finais = caminhos_precos[-1]
+    retornos_percentuais = (precos_finais - 1)
+
+    precos_finais_t = caminhos_precos_t[-1]
+    retornos_percentuais_t = (precos_finais_t - 1)
+
+    # Calcular o Value at Risk (VaR) em percentual
+    VaR_percentual = np.percentile(retornos_percentuais, (1 - nivel_confianca) * 100)
+    VaR_percentual_t = np.percentile(retornos_percentuais_t, (1 - nivel_confianca) * 100)
+
+    # retornos esperados (esperança da simulação)
+    retornos_percentuais_esperados = retornos_percentuais.mean()
+    retornos_percentuais_esperados_t = retornos_percentuais_t.mean()
+
+    return VaR_percentual, VaR_percentual_t, retornos_percentuais, retornos_percentuais_t, retornos_percentuais_esperados, retornos_percentuais_esperados_t
 
 def generate_return_simulations(horizon, n_simulations, degrees_freedom, confidence_level, valid_tickers, portifolio_weights, daily_returns_stocks, annualized_returns=True):
-    # Parâmetros da distribuição t de Student para os retornos dos ativos
-    n_s = int(n_simulations)
-    n_h = int(horizon)
+    # # Parâmetros da distribuição t de Student para os retornos dos ativos
+    n_simulations = int(n_simulations)
+    horizon = int(horizon)
+    confidence_level = float(confidence_level) / 100
+    degrees_freedom = float(degrees_freedom)
 
-    simulated_returns_t = []
-    simulated_returns_normal = []
-
-    for i, ticker in enumerate(valid_tickers):
-        loc = daily_returns_stocks[ticker].mean()
-        scale = daily_returns_stocks[ticker].std()
-        peso = portifolio_weights[i]
-
-        # anualizar
-        if annualized_returns:
-            loc = loc * CONSTANTE_ANUALIZACAO
-            scale = scale * np.sqrt(CONSTANTE_ANUALIZACAO)
-
-        # simular com normal
-        simulated_returns_normal.append(peso * np.random.normal(loc=loc, scale=scale, size=(n_s, n_h)))
-
-        # simular com t-Student
-        df = int(degrees_freedom)
-        simulated_returns_t.append(peso * t.rvs(df=df, loc=loc, scale=scale, size=(n_s, n_h)))
-
-    # Cálculo dos retornos diários da carteira
-    portfolio_returns = np.sum(simulated_returns_t, axis=0)
-    cumulative_returns = np.prod(1 + portfolio_returns, axis=1) - 1
-    VaR = np.percentile(cumulative_returns, 100 - float(confidence_level))
-    mean_portfolio_return = np.mean(cumulative_returns)
-
-    # calculo com a simulacao da normal
-    portfolio_returns_normal = np.sum(simulated_returns_normal, axis=0)
-    cumulative_returns_normal = np.prod(1 + portfolio_returns_normal, axis=1) - 1
-    VaR_normal = np.percentile(cumulative_returns_normal, 100 - float(confidence_level))
-    mean_portfolio_return_normal = np.mean(cumulative_returns_normal)
+    VaR_percentual, VaR_percentual_t, retornos_percentuais, retornos_percentuais_t, retornos_percentuais_esperados, retornos_percentuais_esperados_t = calcular_var_carteira(daily_returns_stocks, portifolio_weights.values, horizon, n_simulations, confidence_level, degrees_freedom)
 
     # Histograma dos retornos acumulados da carteira com t-Student e Normal
     fig = px.histogram(
-        pd.DataFrame({'t de Student':cumulative_returns, 'Normal':cumulative_returns_normal}), 
+        pd.DataFrame({'t de Student':retornos_percentuais_t, 'Normal':retornos_percentuais}), 
         nbins=200, 
         opacity=0.5, 
         labels={'value': 'Retorno Acumulado da Carteira'}, 
@@ -380,6 +404,6 @@ def generate_return_simulations(horizon, n_simulations, degrees_freedom, confide
         legend=dict(title='Distribuição', itemsizing='constant'),
     )
 
-    fig.add_vline(x=VaR, line_width=3, line_dash="dash", line_color="green", annotation_text='VaR t-Student', annotation_position="top left")
-    fig.add_vline(x=VaR_normal, line_width=3, line_dash="dash", line_color="red", annotation_text='VaR Normal', annotation_position="top right")
-    return fig,VaR,VaR_normal, mean_portfolio_return, mean_portfolio_return_normal
+    fig.add_vline(x=VaR_percentual_t, line_width=3, line_dash="dash", line_color="green", annotation_text='VaR t-Student', annotation_position="top left")
+    fig.add_vline(x=VaR_percentual, line_width=3, line_dash="dash", line_color="red", annotation_text='VaR Normal', annotation_position="top right")
+    return fig, VaR_percentual_t, VaR_percentual, retornos_percentuais_esperados_t, retornos_percentuais_esperados
