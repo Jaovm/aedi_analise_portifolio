@@ -172,11 +172,11 @@ valid_tickers, normalized_weights = util.get_valid_tickers_and_normalized_weight
 # Baixar os dados históricos
 dados = {}
 data_yf_stocks = util.download_finance_data(valid_tickers, start=inicio, end=fim)
-data_yf_stocks = data_yf_stocks['Adj Close']
+data_yf_stocks = data_yf_stocks['Close']
 data_yf_stocks = data_yf_stocks[valid_tickers]
 
 data_yf_index = util.download_finance_data('^BVSP', start=inicio, end=fim)
-data_yf_index = data_yf_index['Adj Close']
+data_yf_index = data_yf_index['Close']
 container = st.container()
 
 container = st.container()
