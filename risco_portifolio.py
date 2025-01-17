@@ -70,7 +70,7 @@ col1.markdown('## Dados dos Ativos')
 # inserir dois botões para adicionar ou remover ativos
 if st.session_state.get('s_tickers') is None:
     #colocar 6 tickers das principais ações da B3
-    s_tickers = ['WEGE3.SA', 'VALE3.SA', 'SUZB3.SA', 'EGIE3.SA', 'TRPL4.SA']
+    s_tickers = ['WEGE3.SA', 'VALE3.SA', 'SUZB3.SA', 'EGIE3.SA', 'ITUB3.SA']
     s_weights = [1.0] * len(s_tickers)
 
     st.session_state.s_tickers = s_tickers
