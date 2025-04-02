@@ -1,3 +1,5 @@
+pip install yfinance numpy pandas matplotlib streamlit scipy
+
 import yfinance as yf
 import pandas as pd
 import numpy as np
